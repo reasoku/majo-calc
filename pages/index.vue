@@ -103,7 +103,7 @@ const topCondition = computed(() => {
   const topPlayer = sortedPlayers[0];
   const secondPlayer = sortedPlayers[1];
 
-  // トップとの差を取得
+  // 他家との差を取得
   const differenceFromTop = topPlayer.score - selected.score;
   const differenceFromSecond = secondPlayer.score - selected.score;
 
@@ -112,27 +112,14 @@ const topCondition = computed(() => {
 
   // 点差を計算
   const requiredScore = topPlayer.score - parseInt(selected.score);
-  const requiredScoreHalf = requiredScore / 2;
-
-  // 直撃の時、CHILD_RON_POINTSの中で必要な点数以上の上がりを特定
-  const ronPoints = isParent ? PARENT_RON_POINTS : CHILD_RON_POINTS;
-  const sortedRonPoints = Object.entries(ronPoints).sort((a, b) => a[1] - b[1]);
-
-  const requiredRonPointsDirect = sortedRonPoints.find(
-    ([key, value]) =>
-      value >= requiredScoreHalf && value >= differenceFromSecond
-  );
-
-  // 他家からロンの時CHILD_RON_POINTSの中で必要な点数以上の上がりを特定
-  const requiredRonPointsNoDirect = sortedRonPoints.find(
-    ([key, value]) => value >= requiredScore
-  );
+ 
+  const ronMessage = getRonPointsMessage(isParent, requiredScore, differenceFromSecond);
 
   const messageDifferenceFromTop = `トップと ${differenceFromTop} 点差です`;
   const messageRequiredScore =
     requiredScore > 0
       ? `トップを取るには、` +
-        `直撃ならあと ${requiredRonPointsDirect[1]} 点以上、他家からので上がりなら${requiredRonPointsNoDirect[1]}の上がりが必要です。` +
+      ronMessage +
         `ツモなら`
       : "現在トップです。上がればOK";
 
@@ -140,6 +127,40 @@ const topCondition = computed(() => {
       ${messageRequiredScore}`;
   return finalMessage;
 });
+
+function getRonPointsMessage(isParent, requiredScore, differenceFromSecond) {
+  // TODO:トップ条件２ちゃ条件とかの修正は入れる必要がある
+
+  // 直撃の時は差の半分で良い
+  const requiredScoreHalf = requiredScore / 2;
+
+  // ロンの時ポイントのテーブル
+  const ronPointTable = getRonPointTable(isParent);
+
+  // 直撃の条件
+  const requiredRonPointsDirect = ronPointTable.find(
+    ([key, value]) =>
+      value >= requiredScoreHalf && value >= differenceFromSecond
+  );
+
+  // 他家からの条件
+  const requiredRonPointsNoDirect = ronPointTable.find(
+    ([key, value]) => value >= requiredScore
+  );
+
+  return `直撃ならあと ${requiredRonPointsDirect[1]} 点以上、他家からので上がりなら${requiredRonPointsNoDirect[1]}の上がりが必要です。`
+}
+
+function getRonPointTable(isParent){
+  // 親子で得点のテーブルが違う
+  const ronPoints = isParent ? PARENT_RON_POINTS : CHILD_RON_POINTS;
+  // ロンの時のテーブルを整理
+  return Object.entries(ronPoints).sort((a, b) => a[1] - b[1]);
+}
+
+function getTsumoPointTable(isParent){
+  // todo:実装する
+}
 </script>
 
 <style>

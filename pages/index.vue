@@ -67,27 +67,42 @@ import { ref, computed } from "vue";
 import {
   CHILD_RON_POINTS,
   PARENT_RON_POINTS,
-  CHILD_TSUMO_POINTS,
+  CHILD_TSUMO_POINTS
   //PARENT_TSUMO_POINTS,
 } from "../scoringConstants"; // 定数のインポート
 
 // プレイヤーの型を定義
 interface Player {
-  label: string;
+  label: PlayerLabel;  // 列挙型を使用
   name: string;
   score: number;
 }
 
+enum PlayerLabel {
+  EAST = "東家（起家）",
+  SOUTH = "南家",
+  WEST = "西家",
+  NORTH = "北家"
+}
+
 const players = ref<Player[]>([
-  { label: "東家（起家）", name: "起家", score: 30000 },
-  { label: "南家", name: "南家", score: 27000 },
-  { label: "西家", name: "西家", score: 22000 },
-  { label: "北家", name: "北家", score: 20000 },
+  { label: PlayerLabel.EAST, name: "起家", score: 30000 },
+  { label: PlayerLabel.SOUTH, name: "南家", score: 27000 },
+  { label: PlayerLabel.WEST, name: "西家", score: 22000 },
+  { label: PlayerLabel.NORTH, name: "北家", score: 20000 },
 ]);
 
 const deposit = ref<number>(1000);
 const honba = ref<number>(1);
 const selectedPlayer = ref<string>(players.value[0].label);
+
+const playerScore = ref<number>(0);
+const handleScoreChange = (value: string) => {
+  const numValue = parseInt(value, 10);
+  if (!isNaN(numValue)) {
+    playerScore.value = numValue;
+  }
+};
 
 const totalScore = computed<number>(() => {
   const urn = (
@@ -116,6 +131,7 @@ const topCondition = computed<string>(() => {
   };
 
   if (!selected) return "条件を確認したいプレイヤーが選択されていません";
+  if (!selected.score) return "条件を確認したいプレイヤーの点数が定義されていません";
 
   // スコアに基づいてプレイヤーをソート
   const sortedPlayers = players.value
@@ -130,7 +146,7 @@ const topCondition = computed<string>(() => {
   const differenceFromTop = topPlayer.score - selected.score;
   const differenceFromSecond = secondPlayer.score - selected.score;
 
-  const isParent = selected.label === "北家";
+  const isParent = selected.label === PlayerLabel.NORTH;
   const otherPlayers = players.value.filter(
     (player: Player) => player.label !== selected.label
   );
@@ -144,7 +160,7 @@ const topCondition = computed<string>(() => {
     differenceFromSecond
   );
 
-  const tsumoMessage = getTsumoPointsMessage(isParent, selected, otherPlayers);
+  const tsumoMessage = getTsumoPointsMessage(isParent, selected as Player, otherPlayers);
 
   const messageDifferenceFromTop = differenceFromTop ? `トップと ${differenceFromTop} 点差です。` : "現在トップです。";
   const messageRequiredScore =
@@ -248,7 +264,7 @@ function calcRequiredWinningPoints(
       updatedPlayers = payerPlayers.concat(paidPlayer);
     } else {
       const payerPlayers = otherPlayers.map((player) => {
-        if (player.label === "北家") {
+        if (player.label === PlayerLabel.NORTH) {
           return { ...player, score: player.score - paymentPoint[1] };
         } else {
           return { ...player, score: player.score - paymentPoint[0] };
@@ -272,6 +288,17 @@ function calcRequiredWinningPoints(
   }
 
   return [0, 0];
+}
+
+interface PointCalculation {
+  totalScore: number;
+  deposit: number;
+  honba: number;
+}
+
+interface TsumoResult {
+  childPoints: number;
+  parentPoints: number;
 }
 </script>
 
